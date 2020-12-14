@@ -1,3 +1,7 @@
+/* Вывести название вакансии, город, в котором опубликована вакансия (можно просто area_id),
+   имя работодателя для первых 10 вакансий у которых не указана зарплата,
+   сортировать по дате создания вакансии от новых к более старым.
+ */
 SELECT position_name, city, name
 from vacancy v
          INNER JOIN employer e on e.id = v.employer_id
@@ -6,6 +10,10 @@ WHERE compensation_from is null
 ORDER BY published
 LIMIT 10;
 
+/* Вывести среднюю максимальную зарплату в вакансиях,
+   среднюю минимальную и среднюю среднюю (compensation_to - compensation_from) в одном запросе.
+   Значения должны быть указаны до вычета налогов.
+*/
 SELECT avg(CASE
                WHEN compensation_gross IS TRUE
                    THEN compensation_to
@@ -23,6 +31,10 @@ SELECT avg(CASE
            END) AS avg
 FROM vacancy;
 
+/* Вывести топ-5 компаний, получивших максимальное количество откликов на одну вакансию,
+   в порядке убывания откликов. Если более 5 компаний получили одинаковое максимальное количество откликов,
+   отсортировать по алфавиту и вывести только 5.
+*/
 WITH response_count AS (
     SELECT employer_id,
            max(response) AS max_response
@@ -43,6 +55,8 @@ FROM response_count AS rc
 ORDER BY max_response DESC, name
 LIMIT 5;
 
+/* Вывести медианное количество вакансий на компанию. Использовать percentile_cont.
+*/
 WITH vacancy_count AS (
     SELECT COUNT(*) AS n
     FROM vacancy v
@@ -51,10 +65,11 @@ WITH vacancy_count AS (
 SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY vacancy_count.n) AS median
 FROM vacancy_count;
 
-SELECT
-    city,
-    MIN(response.date - vacancy.published) AS min_time,
-    MAX(response.date - vacancy.published) AS max_time
+/* Вывести минимальное и максимальное время от создания вакансии до первого отклика для каждого города.
+*/
+SELECT city,
+       MIN(response.date - vacancy.published) AS min_time,
+       MAX(response.date - vacancy.published) AS max_time
 FROM response
          LEFT JOIN vacancy ON response.vacancy_id = vacancy.id
          LEFT JOIN employer ON vacancy.employer_id = employer.id
